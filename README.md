@@ -2,7 +2,7 @@
 
 Устройство для измерения раздержки различных камер и FPV-систем. Оно построено на плате Ардуино Нано и 4х разрядном 7ми-сегментном индиаторе LED 5461AS-1.
 
-Прошивка: latencymeter.hex
+Первая верия прошивки: latencymeter_old.hex
 
 Видео по сборке: [https://www.youtube.com/watch?v=69uGeqPZ3CI](https://www.youtube.com/watch?v=69uGeqPZ3CI)
 

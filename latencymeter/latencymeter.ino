@@ -16,7 +16,7 @@ Led_5461AS *led;
 Button btnReset(PIN_BUTTON);
 
 void setup() {
-  //Serial.begin(115200);\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+  //Serial.begin(115200);
   led = new Led_5461AS();
 
   analogReference(EXTERNAL); // внешнее опорное напряжение 3.3В
@@ -46,16 +46,16 @@ void loop() {
   else {
     float voltage = getVoltage();
     if(voltage > startVoltage+0.5) { // Если сигнал поступил, то 
-    float dTime = millis() - timer ; // Считаем задержку
-    digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
-    
-    // Ждем, пока датчик зафиксирует состояние
-    do {
-      voltage = getVoltage();
-    } while(voltage > startVoltage);
-    
-    flagStart = false;
-    led->Set(dTime/1000);
+      float dTime = millis() - timer ; // Считаем задержку
+      led->Set(dTime/1000);
+      
+      digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
+      // Ждем, пока датчик зафиксирует состояние
+      do {
+        voltage = getVoltage();
+      } while(voltage > startVoltage);
+      
+      flagStart = false;
     }
   }
 }

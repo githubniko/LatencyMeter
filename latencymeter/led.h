@@ -97,7 +97,7 @@ class Led_5461AS
         /// @brief Устанавливает число в порты микроконтроллера
         static void Digit(uint8_t val, bool dp = false)
         {
-            DitigOff();
+            DigitOff();
 
             switch (val)
             {
@@ -157,7 +157,7 @@ class Led_5461AS
         }
 
         /// @brief Сбрасывает значения цифры
-        static void DitigOff()
+        static void DigitOff()
         {
             PORTC = PORTC &~ (1 << A) &~ (1 << B) &~ (1 << F);
             PORTD = PORTD &~ (1 << C) &~ (1 << G) &~ (1 << DP);

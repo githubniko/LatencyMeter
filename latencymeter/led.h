@@ -16,13 +16,19 @@
 class Led_5461AS
 {    
     static inline uint8_t count;
-    static inline float value; // Хранит текущее число индикации
+    static inline uint8_t offset; // Смещение. Нужно для точки или запятой
+    static inline char* value; // Хранит текущее число индикации
+    
+    public:
+        static inline uint8_t Length; // Размер строки
 
     public:
         Led_5461AS()
         {
-            value = 0;
+            value = "";
             count = 1;
+            offset = 0;
+            Length = strlen(value);
 
             // Устанавливаю порты на выход
             DDRD = DDRD | B11110000;
@@ -44,107 +50,144 @@ class Led_5461AS
         /// @brief Устанавливает значение индикатора
         void Set(float number)
         {
-            value = number;
+            if(number > 9999)
+                number = 9999;
+            
+            uint8_t pos = FindDecimalPoint(number);
+            char buf[33];
+            dtostrf(number, 4, 4-pos, buf);
+            Set(buf);
+        }
+
+        /// @brief Устанавливает значение индикатора
+        void Set(int number)
+        {
+            if(number > 9999)
+                number = 9999;
+
+            char buf[33];
+            itoa(number, buf, 10);
+            Set(buf);
+        }
+
+        /// @brief Устанавливает значение индикатора
+        void Set(char* str)
+        {
+           value = str;
+           Length = strlen(value);
         }
 
         /// @brief Метод обновления индикации
         static void Update()
         {
-            uint8_t digit = 0;
+            bool dp = false;
+            char symbol;
             TurnOff();
-            // Защита от переполнения
-            if(value > 9999)
-                value = 9999;
-
             
-            uint8_t lenDigit = 4; // кол-во сегментов в индиакторе
-            uint8_t decimal_pos = FindDecimalPoint(value);
-            uint16_t number = int(10000/pow(10, decimal_pos)) * value;
+            int i = Length - 4 + count-1;
+            symbol = i < 0 ? ' ' : value[i-offset];
             
-            bool dp = (decimal_pos == count && decimal_pos < lenDigit)   ? true : false;  
-                  
-            switch (count)
-            {
-            case 1:
-                digit = number/1000 % 10;
-                Digit(digit, dp);
-                PORTC = PORTC &~ (1 << DIG1);
-                break;
-            case 2:
-                digit = number/100 % 10;
-                Digit(digit, dp);
-                PORTC = PORTC &~ (1 << DIG2);
-                break;
-            case 3:
-                digit = number/10 % 10;
-                Digit(digit, dp);
-                PORTC = PORTC &~ (1 << DIG3);
-                break;
-            case 4:
-                digit = number % 10;
-                Digit(digit, dp);
-                PORTD = PORTD &~ (1 << DIG4);
-                count = 0;
-                break;
-            
-            default:
-                break;
+            if(symbol == '.' || symbol == ',') {
+                dp = true;
+                offset++;
+                symbol = i-offset < 0 ? ' ' : value[i-offset];
             }
-            count++;
+            
+            Digit(symbol, dp);
+            TurnOnNumber(count);
+
+            count--;
+
+            if(count == 0) {
+                count = 4;
+                offset = 0;
+            }
         }
 
     private:
-        /// @brief Устанавливает число в порты микроконтроллера
-        static void Digit(uint8_t val, bool dp = false)
+        /// @brief Устанавливает число на индикаторе
+        static void Digit(char val, bool dp = false)
         {
             DigitOff();
 
             switch (val)
             {
-            case 1:
+            case '1':
                 PORTC = PORTC | (1 << B);
                 PORTD = PORTD | (1 << C);
                 break;
-            case 2:
+            case '2':
                 PORTC = PORTC | (1 << A) | (1 << B);
                 PORTD = PORTD | (1 << G);
                 PORTB = PORTB | (1 << D) | (1 << E);
                 break;
-            case 3:
+            case '3':
                 PORTC = PORTC | (1 << A) | (1 << B);
                 PORTD = PORTD | (1 << C) | (1 << G);
                 PORTB = PORTB | (1 << D);
                 break;
-            case 4:
+            case '4':
                 PORTC = PORTC | (1 << B) | (1 << F);
                 PORTD = PORTD | (1 << C) | (1 << G);
                 break;
-            case 5:
+            case '5':
                 PORTC = PORTC | (1 << A) | (1 << F);
                 PORTD = PORTD | (1 << C) | (1 << G);
                 PORTB = PORTB | (1 << D);
                 break;
-            case 6:
+            case '6':
                 PORTC = PORTC | (1 << A) | (1 << F);
                 PORTD = PORTD | (1 << C) | (1 << G);
                 PORTB = PORTB | (1 << D) | (1 << E);
                 break;
-            case 7:
+            case '7':
                 PORTC = PORTC | (1 << A) | (1 << B);
                 PORTD = PORTD | (1 << C);
                 break;
-            case 8:
+            case '8':
                 PORTC = PORTC | (1 << A) | (1 << B) | (1 << F);
                 PORTD = PORTD | (1 << C) | (1 << G);
                 PORTB = PORTB | (1 << D) | (1 << E);
                 break;
-            case 9:
+            case '9':
                 PORTC = PORTC | (1 << A) | (1 << B) | (1 << F);
                 PORTD = PORTD | (1 << C) | (1 << G);
                 PORTB = PORTB | (1 << D);
                 break;
-            case 0:
+            case '0':
                 PORTC = PORTC | (1 << A) | (1 << B) | (1 << F);
+                PORTD = PORTD | (1 << C);
+                PORTB = PORTB | (1 << D) | (1 << E);
+                break;
+            case 'H':
+                PORTC = PORTC | (1 << B) | (1 << F);
+                PORTD = PORTD | (1 << C) | (1 << G);
+                PORTB = PORTB | (1 << E);
+                break;
+            case 'h':
+                PORTC = PORTC | (1 << F);
+                PORTD = PORTD | (1 << C) | (1 << G);
+                PORTB = PORTB | (1 << E);
+                break;
+            case 'L':
+                PORTC = PORTC | (1 << F);
+                PORTB = PORTB | (1 << D) | (1 << E);
+                break;
+            case 'l':
+                PORTC = PORTC | (1 << F);
+                PORTB = PORTB | (1 << E);
+                break;
+            case ' ':
+                PORTC = PORTC &~ (1 << A) &~ (1 << B) &~ (1 << F);
+                PORTD = PORTD &~ (1 << C) &~ (1 << G) &~ (1 << DP);
+                PORTB = PORTB &~ (1 << D) &~ (1 << E);
+                break;
+            case '-':
+                PORTD = PORTD | (1 << G);                
+                break;
+            case 'U':
+            case 'u':
+                PORTC = PORTC | (1 << B) | (1 << F);
                 PORTD = PORTD | (1 << C);
                 PORTB = PORTB | (1 << D) | (1 << E);
                 break;
@@ -155,7 +198,6 @@ class Led_5461AS
             if(dp)
                 PORTD = PORTD | (1 << DP);
         }
-
         /// @brief Сбрасывает значения цифры
         static void DigitOff()
         {
@@ -168,6 +210,29 @@ class Led_5461AS
         {
             PORTC = PORTC | (1 << DIG1) | (1 << DIG2) | (1 << DIG3);
             PORTD = PORTD | (1 << DIG4);
+        }
+        /// @brief Включает разряд c порядковым номером.Слева направо
+        static void TurnOnNumber(uint8_t num)
+        {
+            switch (num)
+            {
+            case 1:
+                PORTC = PORTC &~ (1 << DIG1);
+                break;
+            case 2:
+                PORTC = PORTC &~ (1 << DIG2);
+                break;
+            case 3:
+                PORTC = PORTC &~ (1 << DIG3);
+                break;
+            case 4:
+                PORTD = PORTD &~ (1 << DIG4);
+                break;
+            
+            default:
+
+                break;
+            }
         }
 
         /// @brief Возвращает позицию запятой в числе
@@ -183,6 +248,7 @@ class Led_5461AS
 
             return 1;
         }
+
 };
 
 

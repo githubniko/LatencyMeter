@@ -40,6 +40,8 @@ public:
         startVoltage = getVoltage() / 2;
         //delay(2000);
         _flagStatus = true;
+        
+        digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
     }
     void Stop() { _flagStatus = false; }
     void Restart()

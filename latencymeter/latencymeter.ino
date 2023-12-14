@@ -7,7 +7,7 @@
 #include "button.h"
 #include "latencymeter.h"
 
-bool flagStart = false; // когда true, то идет процесс измерения
+
 
 Led_5461AS *led;
 LatencyMeter *latencyMeter;
@@ -27,7 +27,6 @@ void setup() {
   
   led = new Led_5461AS();
   latencyMeter = new LatencyMeter();
-  
   latencyMeter->onUpdate += METHOD_HANDLER( eventHandler, EventHandler::OnUpdate);
 
   led->Set(latencyMeter->startVoltage);
@@ -46,16 +45,7 @@ void loop() {
     latencyMeter->Stop();
   }
 
-  // Стартуем измерения
-  if(!flagStart) {
-    flagStart = true;
-    latencyMeter->Start();
-  }
-  // Ждем, сигнал от фотодатчика
-  else {
-    latencyMeter->Execute(); 
-    flagStart = false;
-  }
+  latencyMeter->Execute(); 
 }
 
 

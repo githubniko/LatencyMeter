@@ -1,3 +1,5 @@
+#pragma once
+
 #define A PORTC1
 #define B PORTC5
 #define C PORTD6

@@ -14,8 +14,9 @@ public:
     float smaTime = 0; // Среднее время
     float minTime = 0;
     float maxTime = 0;
+    float valueTime = 0;
 
-    TEvent<float> onUpdate;
+    TEvent<> onUpdate;
 
 public:
     LatencyMeter()
@@ -26,20 +27,19 @@ public:
 
     void Start()
     {
-        Serial.println("Start");
         startVoltage = 0;
         smaTime = 0;
         minTime = 0;
         maxTime = 0;
+        valueTime = 0;
         _flagMeasuring = false;
 
+        onUpdate();
         digitalWrite(PIN_OUT, HIGH);
         delay(1000);
         startVoltage = getVoltage() / 2;
-        onUpdate(startVoltage);
-        delay(2000);
+        //delay(2000);
         _flagStatus = true;
-         Serial.println("End Start");
     }
     void Stop() { _flagStatus = false; }
     void Restart()
@@ -57,7 +57,7 @@ public:
         if (!_flagMeasuring)
         {
             // Ждем, пока датчик зафиксирует состояние выкл. светодиода
-            if(getVoltage() > startVoltage)
+            if (getVoltage() > startVoltage)
                 return;
 
             _flagMeasuring = true;
@@ -69,20 +69,22 @@ public:
         {
             float voltage = getVoltage();
             if (voltage > startVoltage + 0.5f)
-            {                                          // Если сигнал поступил, то
-                float dTime = float(millis() - _timer); // Считаем задержку
-                if (dTime < minTime || minTime == 0)
-                    minTime = dTime;
-                if (dTime > maxTime)
-                    maxTime = dTime;
-                smaTime = (smaTime + dTime) / 2; // Расчет средней
+            {                                         // Если сигнал поступил, то
+                valueTime = float(millis() - _timer); // Считаем задержку
 
-                onUpdate(smaTime);
+                if (valueTime < minTime || minTime == 0)
+                    minTime = valueTime;
+
+                if (valueTime > maxTime)
+                    maxTime = valueTime;
+
+                smaTime = smaTime > 0 ? (smaTime + valueTime) / 2 : valueTime; // Расчет средней
+
+                onUpdate();
 
                 digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
                 _flagMeasuring = false;
             }
-            
         }
     }
 

@@ -27,7 +27,7 @@ public:
 public:
     Led_5461AS()
     {
-        value = "";
+        value = "0";
         count = 1;
         offset = 0;
         Length = strlen(value);
@@ -73,9 +73,9 @@ public:
     }
 
     /// @brief Устанавливает значение индикатора
-    void Set(char *str)
+    void Set(const char *str)
     {
-        value = str;
+        strcpy(value, str);
         Length = strlen(value);
     }
 
@@ -194,6 +194,9 @@ private:
             PORTC = PORTC | (1 << B) | (1 << F);
             PORTD = PORTD | (1 << C);
             PORTB = PORTB | (1 << D) | (1 << E);
+            break;
+        case '^':
+            PORTC = PORTC | (1 << A) | (1 << F);
             break;
         default:
             break;

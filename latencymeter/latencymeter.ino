@@ -10,23 +10,51 @@ Led_5461AS *led;
 LatencyMeter *latencyMeter;
 Button button1(PIN_BUTTON);
 
+uint8_t flagTypeDataOut = 0; // 0 - задержка рела-тайм, 1 - минимальная, 2 - максимальная, 3 - средняя
+
 class EventHandler
 {
 public:
-  void OnUpdate(float value)
+  void OnUpdateData()
   {
-    led->Set(value);
+    char buf[33];
+    char str[10];
+
+    switch (flagTypeDataOut)
+    {
+    case 1:
+      dtostrf(latencyMeter->minTime, 3, 0, buf);
+      strcpy(str, "L");
+      break;
+    case 2:
+      dtostrf(latencyMeter->maxTime, 3, 0, buf);
+      strcpy(str, "H");
+      break;
+    case 3:
+      dtostrf(latencyMeter->smaTime, 3, 0, buf);
+      strcpy(str, "^");
+      break;
+    case 0:
+    default:
+      dtostrf(latencyMeter->valueTime, 4, 0, buf);
+      strcpy(str, "");
+      break;
+    }
+    strcat(str, buf);
+    led->Set(str); // вывод на экран
   }
   void OnBtnClick()
   {
-      Serial.println("OnBtnClick");
+    flagTypeDataOut++;
+    if (flagTypeDataOut > 3)
+      flagTypeDataOut = 0;
+    
+    OnUpdateData();
   }
   void OnBtnReset()
   {
-    Serial.println("onClickLong");
     latencyMeter->Start();
-    //asm volatile("jmp 0x00"); // Перезагрузка
-    //led->Set("L");
+    // asm volatile("jmp 0x00"); // Перезагрузка
   }
 };
 EventHandler eventHandler;
@@ -37,9 +65,9 @@ void setup()
 
   led = new Led_5461AS();
   latencyMeter = new LatencyMeter();
-  latencyMeter->onUpdate += METHOD_HANDLER(eventHandler, EventHandler::OnUpdate);
+  latencyMeter->onUpdate += METHOD_HANDLER(eventHandler, EventHandler::OnUpdateData);
 
-  button1.onClick     += METHOD_HANDLER(eventHandler, EventHandler::OnBtnClick);
+  button1.onClick += METHOD_HANDLER(eventHandler, EventHandler::OnBtnClick);
   button1.onClickLong += METHOD_HANDLER(eventHandler, EventHandler::OnBtnReset);
 
   latencyMeter->Start();

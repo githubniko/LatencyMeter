@@ -198,6 +198,10 @@ private:
         case '^':
             PORTC = PORTC | (1 << A) | (1 << F);
             break;
+        case 'n':
+            PORTD = PORTD | (1 << C) | (1 << G);
+            PORTB = PORTB | (1 << E);
+            break;
         default:
             break;
         }

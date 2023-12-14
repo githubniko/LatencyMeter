@@ -10,7 +10,8 @@ Led_5461AS *led;
 LatencyMeter *latencyMeter;
 Button button1(PIN_BUTTON);
 
-uint8_t flagTypeDataOut = 0; // 0 - задержка рела-тайм, 1 - минимальная, 2 - максимальная, 3 - средняя
+uint8_t flagTypeDataOut = 0; // 0 - задержка рела-тайм, 1 - минимальная, 2 - максимальная, 3 - средняя, 4 - кол-во измерений
+uint8_t icount = 0;
 
 class EventHandler
 {
@@ -34,6 +35,10 @@ public:
       dtostrf(latencyMeter->smaTime, 3, 0, buf);
       strcpy(str, "^");
       break;
+    case 4:
+      itoa(icount++, buf, 10);
+      strcpy(str, "n");
+      break;
     case 0:
     default:
       dtostrf(latencyMeter->valueTime, 4, 0, buf);
@@ -41,18 +46,20 @@ public:
       break;
     }
     strcat(str, buf);
+    Serial.println(latencyMeter->valueTime);
     led->Set(str); // вывод на экран
   }
   void OnBtnClick()
   {
     flagTypeDataOut++;
-    if (flagTypeDataOut > 3)
+    if (flagTypeDataOut > 4)
       flagTypeDataOut = 0;
     
     OnUpdateData();
   }
   void OnBtnReset()
   {
+    icount=0;
     latencyMeter->Start();
     // asm volatile("jmp 0x00"); // Перезагрузка
   }

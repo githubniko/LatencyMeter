@@ -2,13 +2,13 @@
 
 #define PIN_BUTTON 10
 
-#include "led.h"
-#include "button.h"
-#include "latencymeter.h"
+#include "Led_5461AS.h"
+#include "Button.h"
+#include "LatencyMeter.h"
 
 Led_5461AS *led;
 LatencyMeter *latencyMeter;
-Button btnReset(PIN_BUTTON);
+Button button1(PIN_BUTTON);
 
 class EventHandler
 {
@@ -16,6 +16,17 @@ public:
   void OnUpdate(float value)
   {
     led->Set(value);
+  }
+  void OnBtnClick()
+  {
+      Serial.println("OnBtnClick");
+  }
+  void OnBtnReset()
+  {
+    Serial.println("onClickLong");
+    latencyMeter->Start();
+    //asm volatile("jmp 0x00"); // Перезагрузка
+    //led->Set("L");
   }
 };
 EventHandler eventHandler;
@@ -28,23 +39,14 @@ void setup()
   latencyMeter = new LatencyMeter();
   latencyMeter->onUpdate += METHOD_HANDLER(eventHandler, EventHandler::OnUpdate);
 
-  led->Set(latencyMeter->startVoltage);
+  button1.onClick     += METHOD_HANDLER(eventHandler, EventHandler::OnBtnClick);
+  button1.onClickLong += METHOD_HANDLER(eventHandler, EventHandler::OnBtnReset);
 
-  // led->Set("...1.2");
-  // led->Set(2.70f);
-
-  delay(2000);
+  latencyMeter->Start();
 }
 
 void loop()
 {
-
-  // Перезагрузка по клику
-  if (btnReset.Click())
-  {
-    // asm volatile("jmp 0x00");
-    latencyMeter->Stop();
-  }
-
+  button1.Execute();
   latencyMeter->Execute();
 }

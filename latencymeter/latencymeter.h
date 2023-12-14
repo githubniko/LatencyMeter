@@ -15,6 +15,7 @@ public:
     float minTime = 0;
     float maxTime = 0;
     float valueTime = 0;
+    uint8_t count = 0; // Кол-во измерений
 
     TEvent<> onUpdate;
 
@@ -35,9 +36,9 @@ public:
         _flagMeasuring = false;
 
         onUpdate();
-        digitalWrite(PIN_OUT, HIGH);
+        digitalWrite(PIN_OUT, LOW);
         delay(1000);
-        startVoltage = getVoltage() / 2;
+        startVoltage = getVoltage();// / 2;
         //delay(2000);
         _flagStatus = true;
         
@@ -72,6 +73,7 @@ public:
             float voltage = getVoltage();
             if (voltage > startVoltage + 0.5f)
             {                                         // Если сигнал поступил, то
+                count++;
                 valueTime = float(millis() - _timer); // Считаем задержку
 
                 if (valueTime < minTime || minTime == 0)
@@ -81,7 +83,7 @@ public:
                     maxTime = valueTime;
 
                 smaTime = smaTime > 0 ? (smaTime + valueTime) / 2 : valueTime; // Расчет средней
-
+                
                 onUpdate();
 
                 digitalWrite(PIN_OUT, LOW); // Выкл. светодиод

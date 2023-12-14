@@ -11,7 +11,6 @@ LatencyMeter *latencyMeter;
 Button button1(PIN_BUTTON);
 
 uint8_t flagTypeDataOut = 0; // 0 - задержка рела-тайм, 1 - минимальная, 2 - максимальная, 3 - средняя, 4 - кол-во измерений
-uint8_t icount = 0;
 
 class EventHandler
 {
@@ -36,7 +35,7 @@ public:
       strcpy(str, "^");
       break;
     case 4:
-      itoa(icount++, buf, 10);
+      itoa(latencyMeter->count, buf, 10);
       strcpy(str, "n");
       break;
     case 0:
@@ -59,7 +58,6 @@ public:
   }
   void OnBtnReset()
   {
-    icount=0;
     latencyMeter->Start();
     // asm volatile("jmp 0x00"); // Перезагрузка
   }

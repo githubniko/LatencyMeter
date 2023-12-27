@@ -10,7 +10,7 @@ Led_5461AS *led;
 LatencyMeter *latencyMeter;
 Button button1(PIN_BUTTON);
 
-uint8_t flagTypeDataOut = 0; // 0 - задержка рела-тайм, 1 - минимальная, 2 - максимальная, 3 - средняя, 4 - кол-во измерений
+uint8_t flagTypeDataOut = 3; // 0 - задержка рела-тайм, 1 - минимальная, 2 - максимальная, 3 - медиана, 4 - кол-во измерений
 
 class EventHandler
 {
@@ -31,7 +31,7 @@ public:
       strcpy(str, "H");
       break;
     case 3:
-      dtostrf(latencyMeter->smaTime, 3, 0, buf);
+      dtostrf(latencyMeter->medianTime, 3, 0, buf);
       strcpy(str, "^");
       break;
     case 4:
@@ -45,7 +45,6 @@ public:
       break;
     }
     strcat(str, buf);
-    Serial.println(latencyMeter->valueTime);
     led->Set(str); // вывод на экран
   }
   void OnBtnClick()
@@ -75,7 +74,7 @@ void setup()
   button1.onClick += METHOD_HANDLER(eventHandler, EventHandler::OnBtnClick);
   button1.onClickLong += METHOD_HANDLER(eventHandler, EventHandler::OnBtnReset);
 
-  latencyMeter->Start();
+  //latencyMeter->Start();
 }
 
 void loop()

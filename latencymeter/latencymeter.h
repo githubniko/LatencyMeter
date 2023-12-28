@@ -8,16 +8,15 @@ class LatencyMeter
     uint32_t _timer = 0;         // Переменная таймера
     bool _flagMeasuring = false; // когда true, то идет процесс измерения
     bool _flagStatus = false;    // Управляет запуском/остановкой процесса измерения
-    List<float> _listValue;      // массив измерений
+    List<uint16_t> _listValue;    // массив измерений
 
 public:
     float startVoltage = 0;
-    float medianTime = 0; // Медиана значений
-    float smaTime = 0; // Среднее время
-    float minTime = 0;
-    float maxTime = 0;
-    float valueTime = 0;
-    uint8_t count = 0; // Кол-во измерений
+    uint16_t medianTime = 0; // Медиана значений
+    uint16_t minTime = 0;
+    uint16_t maxTime = 0;
+    uint16_t valueTime = 0;
+    uint16_t count = 0; // Кол-во измерений
 
     TEvent<> onUpdate;
 
@@ -33,7 +32,6 @@ public:
         Serial.println("Start");
         startVoltage = 0;
         medianTime = 0;
-        smaTime = 0;
         minTime = 0;
         maxTime = 0;
         valueTime = 0;
@@ -80,7 +78,7 @@ public:
             if (voltage > startVoltage + 0.5f)
             { // Если сигнал поступил, то
                 count++;
-                valueTime = float(millis() - _timer); // Считаем задержку
+                valueTime = millis() - _timer; // Считаем задержку
                 AddValue(valueTime);
 
                 if (valueTime < minTime || minTime == 0)
@@ -89,8 +87,7 @@ public:
                 if (valueTime > maxTime)
                     maxTime = valueTime;
 
-                smaTime = smaTime > 0 ? (smaTime + valueTime) / 2 : valueTime; // Расчет средней
-                medianTime = Median();
+                medianTime = round(Median());
 
                 onUpdate();
 
@@ -110,33 +107,14 @@ private:
 
     /// @brief Добавляет измерение в сортированный массив
     /// @return void
-    void AddValue(float value)
+    void AddValue(uint32_t value)
     {
         int size = _listValue.getSize();
-        bool flagAdd = false;
-
-        // добавляем первый элемент
-        if (size == 0)
-        {
-            _listValue.add(value);
+        if (size > 50)
+        { // ограничиваем размре, чтобы небыло переполнения памяти
+            _listValue.removeFirst();
         }
-        else
-        {
-            // добавляем в середину
-            for (int i = 0; i < _listValue.getSize(); i++)
-            {
-                if (value < _listValue[i])
-                {
-                    _listValue.addAtIndex(i, value);
-                    flagAdd = true;
-                    break;
-                }
-            }
-
-            // добавляем в конец
-            if (!flagAdd)
-                _listValue.add(value);
-        }
+        _listValue.add(value);
         Serial.println(value);
     }
 
@@ -144,11 +122,80 @@ private:
     /// @return Значение медианы
     float Median()
     {
-        const uint8_t size = _listValue.getSize();
-        const float halfSize = size / 2;
-        if (size % 2 == 0)
-            return (_listValue[halfSize] + _listValue[halfSize - 1]) / 2;
+        uint16_t size = _listValue.getSize();
+        
+        int8_t napravlenie = 0; // задает направление поиска 2ой медианы (для четного ряда). Может принимать -1 или 1
+        float median = 0;       // хранит значение первой найденой медианы (для четного ряда)
+        float predel = 0;       // хранит верхнюю/нижнюю границу поиска медианы (для четного ряда)
+        for (uint16_t i = 0; i < size; i++)
+        {
+            if (napravlenie != 0)
+            { // если первая медиана найдена, то пропускаем значения
+                if (napravlenie < 0 && _listValue[i] <= median) // меньше медианы
+                    continue;
+                if (napravlenie > 0 && _listValue[i] >= median) // больше медианы
+                    continue;
 
-        return _listValue[round(halfSize)];
+                // Проускаем значения, которые выходят за пределы диаппазона
+                if (predel != 0)
+                {
+                    if (napravlenie < 0 && predel < _listValue[i])
+                        continue;
+                    if (napravlenie > 0 && predel > _listValue[i])
+                        continue;
+                }
+            }
+            // цикл поиска медианы
+            int m = 0, c = 0; // счетчики бОльших и меньших значений
+            for (uint16_t j = 0; j < size; j++)
+            {
+                if (i != j) // пропускаем самого себя
+                {
+                    if (_listValue[i] < _listValue[j])
+                        m--;
+                    else if (_listValue[i] > _listValue[j])
+                        m++;
+                    else
+                        c++;
+                }
+            }
+            m = (abs(m) - c) * (m > 0 ? 1 : -1); // это нужно, чтобы определить в какую сторону отнести равные значения ряда
+
+            // для НЕЧЕТНОГО ряда медиана будет одна при m == 0
+            if (m == 0)
+                return _listValue[i];
+
+            // для ЧЕТНОГО ряда ищем два ближайших кандидата для медианы
+            if (abs(m) == 1)
+            {
+                if (napravlenie == 0)
+                { // записываем первую медиан
+                    median = _listValue[i];
+                    napravlenie = m; // если m = 1, то это верхняя медиана, если m = -1, то это нижняя медиана
+                    //  Это помогает отсечь значение вне диапазона для поиска
+                    // 2ой медианы (экономит время выполнения программы)
+                }
+                else
+                { // вычисляем среднее значение из 2х соседних медиан
+                    return (median + _listValue[i]) / 2.0f;
+                }
+            }
+            // для ЧЕТНОГО ряда: нужно отбрасывать значения, которые не входят в интервал поиска
+            else if (napravlenie != 0)
+            {
+                // Сужаем диаппазон поиска
+                //
+                if (predel == 0) // для первого значения
+                    predel = _listValue[i];
+
+                // Все последующие сравниваются с предыдущим, и если оно сужает поиск, то значение обновляется
+                else if (napravlenie < 0 && _listValue[i] < predel)
+                    predel = _listValue[i];
+                else if (napravlenie > 0 && _listValue[i] > predel)
+                    predel = _listValue[i];
+
+            }
+        }
+        return median;
     }
 };

@@ -87,7 +87,7 @@ public:
                 if (valueTime > maxTime)
                     maxTime = valueTime;
 
-                medianTime = round(Median());
+                medianTime = round(median());
 
                 onUpdate();
 
@@ -120,31 +120,18 @@ private:
 
     /// @brief Возвращает медиану. Примечание: данные должны быть отсортированы
     /// @return Значение медианы
-    float Median()
+    float median()
     {
         uint16_t size = _listValue.getSize();
 
-        int8_t napravlenie = 0; // задает направление поиска 2ой медианы (для четного ряда). Может принимать -1 или 1
-        float median = 0;       // хранит значение первой найденой медианы (для четного ряда)
-        float predel = 0;       // хранит верхнюю/нижнюю границу поиска медианы (для четного ряда)
+        float median1 = 0;           // хранит значение первой найденой медианы (для четного ряда)
+        int limLow = 0, limHigh = 0; // верхний нижний предел
         for (uint16_t i = 0; i < size; i++)
         {
-            if (napravlenie != 0)
-            {                                                   // если первая медиана найдена, то пропускаем значения
-                if (napravlenie < 0 && _listValue[i] <= median) // меньше медианы
-                    continue;
-                if (napravlenie > 0 && _listValue[i] >= median) // больше медианы
-                    continue;
-
-                // Проускаем значения, которые выходят за пределы диаппазона
-                if (predel != 0)
-                {
-                    if (napravlenie < 0 && predel < _listValue[i])
-                        continue;
-                    if (napravlenie > 0 && predel > _listValue[i])
-                        continue;
-                }
-            }
+            if (limLow != 0 && limLow >= _listValue[i])
+                continue;
+            if (limHigh != 0 && limHigh <= _listValue[i])
+                continue;
             // цикл поиска медианы
             int m = 0, // счетчики бОльших и меньших значений
                 c = 0; // счетчик повторяющихся значений
@@ -169,33 +156,23 @@ private:
             // для ЧЕТНОГО ряда ищем два ближайших кандидата для медианы
             if (abs(m) == 1)
             {
-                if (napravlenie == 0)
-                { // записываем первую медиан
-                    median = _listValue[i];
-                    napravlenie = m; // если m = 1, то это верхняя медиана, если m = -1, то это нижняя медиана
-                    //  Это помогает отсечь значение вне диапазона для поиска
-                    // 2ой медианы (экономит время выполнения программы)
-                }
+                if (median1 != 0 && (limLow == median1 || limHigh == median1))
+                    return (median1 + _listValue[i]) / 2.0f; // вычисляем среднее значение из 2х соседних медиан
                 else
-                { // вычисляем среднее значение из 2х соседних медиан
-                    return (median + _listValue[i]) / 2.0f;
-                }
+                    median1 = _listValue[i]; // первая медиана
             }
-            // для ЧЕТНОГО ряда: нужно отбрасывать значения, которые не входят в интервал поиска
-            else if (napravlenie != 0)
+            // Выставляем верхний и нижний предел ряда
+            if (m < 0)
             {
-                // Сужаем диаппазон поиска
-                //
-                if (predel == 0) // для первого значения
-                    predel = _listValue[i];
-
-                // Все последующие сравниваются с предыдущим, и если оно сужает поиск, то значение обновляется
-                else if (napravlenie < 0 && _listValue[i] < predel)
-                    predel = _listValue[i];
-                else if (napravlenie > 0 && _listValue[i] > predel)
-                    predel = _listValue[i];
+                if (limLow == 0 || limLow < _listValue[i])
+                    limLow = _listValue[i];
+            }
+            else if(m > 0)
+            {
+                if (limHigh == 0 || limHigh > _listValue[i])
+                    limHigh = _listValue[i];
             }
         }
-        return median;
+        return median1;
     }
 };

@@ -128,6 +128,7 @@ private:
         int limLow = 0, limHigh = 0; // верхний нижний предел
         for (uint16_t i = 0; i < size; i++)
         {
+            // Пропускамем, если число вышло за установленные пределы поиска
             if (limLow != 0 && limLow >= _listValue[i])
                 continue;
             if (limHigh != 0 && limHigh <= _listValue[i])

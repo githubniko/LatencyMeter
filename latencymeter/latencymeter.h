@@ -8,7 +8,7 @@ class LatencyMeter
     uint32_t _timer = 0;         // Переменная таймера
     bool _flagMeasuring = false; // когда true, то идет процесс измерения
     bool _flagStatus = false;    // Управляет запуском/остановкой процесса измерения
-    List<uint16_t> _listValue;    // массив измерений
+    List<uint16_t> _listValue;   // массив измерений
 
 public:
     float startVoltage = 0;
@@ -123,14 +123,14 @@ private:
     float Median()
     {
         uint16_t size = _listValue.getSize();
-        
+
         int8_t napravlenie = 0; // задает направление поиска 2ой медианы (для четного ряда). Может принимать -1 или 1
         float median = 0;       // хранит значение первой найденой медианы (для четного ряда)
         float predel = 0;       // хранит верхнюю/нижнюю границу поиска медианы (для четного ряда)
         for (uint16_t i = 0; i < size; i++)
         {
             if (napravlenie != 0)
-            { // если первая медиана найдена, то пропускаем значения
+            {                                                   // если первая медиана найдена, то пропускаем значения
                 if (napravlenie < 0 && _listValue[i] <= median) // меньше медианы
                     continue;
                 if (napravlenie > 0 && _listValue[i] >= median) // больше медианы
@@ -146,7 +146,8 @@ private:
                 }
             }
             // цикл поиска медианы
-            int m = 0, c = 0; // счетчики бОльших и меньших значений
+            int m = 0, // счетчики бОльших и меньших значений
+                c = 0; // счетчик повторяющихся значений
             for (uint16_t j = 0; j < size; j++)
             {
                 if (i != j) // пропускаем самого себя
@@ -159,7 +160,7 @@ private:
                         c++;
                 }
             }
-            m = (abs(m) - c) * (m > 0 ? 1 : -1); // это нужно, чтобы определить в какую сторону отнести равные значения ряда
+            m = c > abs(m) ? 0 : (abs(m) - c) * (m > 0 ? 1 : -1); // это нужно, чтобы определить в какую сторону отнести равные значения ряда
 
             // для НЕЧЕТНОГО ряда медиана будет одна при m == 0
             if (m == 0)
@@ -193,7 +194,6 @@ private:
                     predel = _listValue[i];
                 else if (napravlenie > 0 && _listValue[i] > predel)
                     predel = _listValue[i];
-
             }
         }
         return median;

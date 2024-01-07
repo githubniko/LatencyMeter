@@ -68,8 +68,7 @@ public:
                 return;
 
             _flagMeasuring = true;
-//            _timer = millis();
-            _timer = micros() / 1000;
+            _timer = micros();
             digitalWrite(PIN_OUT, HIGH); // Зажигаем светодиод
         }
         // Ждем, сигнал от фотодатчика
@@ -79,11 +78,10 @@ public:
             if (voltage > startVoltage + 0.5f)
             { // Если сигнал поступил, то
                 count++;
-//                valueTime = millis() - _timer; // Считаем задержку
-                valueTime = micros() / 1000 - _timer; // Считаем задержку
+                valueTime = (micros() - _timer) / 1000; // Считаем задержку
                 AddValue(valueTime);
 
-                if (valueTime < minTime)// || minTime == 0)
+                if (valueTime < minTime)
                     minTime = valueTime;
 
                 if (valueTime > maxTime)

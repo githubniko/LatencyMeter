@@ -81,7 +81,7 @@ public:
                 valueTime = millis() - _timer; // Считаем задержку
                 AddValue(valueTime);
 
-                if (valueTime < minTime || minTime == 0)
+                if (valueTime < minTime)// || minTime == 0)
                     minTime = valueTime;
 
                 if (valueTime > maxTime)

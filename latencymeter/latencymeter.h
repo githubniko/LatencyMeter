@@ -40,6 +40,7 @@ public:
         _listValue.clear();
 
         onUpdate();
+        minTime = 32767;
         digitalWrite(PIN_OUT, LOW);
         delay(1000);
         startVoltage = getVoltage() + 0.05f; // / 2;

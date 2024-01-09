@@ -112,7 +112,7 @@ private:
     {
         int size = _listValue.getSize();
         if (size > 50)
-        { // ограничиваем размре, чтобы небыло переполнения памяти
+        { // ограничиваем размeр, чтобы не было переполнения памяти
             _listValue.removeFirst();
         }
         _listValue.add(value);

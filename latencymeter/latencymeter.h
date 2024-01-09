@@ -40,6 +40,7 @@ public:
         _listValue.clear();
 
         onUpdate();
+        minTime = 32767;
         digitalWrite(PIN_OUT, LOW);
         delay(1000);
         startVoltage = getVoltage() + 0.05f; // / 2;
@@ -68,7 +69,7 @@ public:
                 return;
 
             _flagMeasuring = true;
-            _timer = millis();
+            _timer = micros();
             digitalWrite(PIN_OUT, HIGH); // Зажигаем светодиод
         }
         // Ждем, сигнал от фотодатчика
@@ -78,10 +79,10 @@ public:
             if (voltage > startVoltage + 0.5f)
             { // Если сигнал поступил, то
                 count++;
-                valueTime = millis() - _timer; // Считаем задержку
+                valueTime = (micros() - _timer) / 1000; // Считаем задержку
                 AddValue(valueTime);
 
-                if (valueTime < minTime || minTime == 0)
+                if (valueTime < minTime)
                     minTime = valueTime;
 
                 if (valueTime > maxTime)
@@ -111,7 +112,7 @@ private:
     {
         int size = _listValue.getSize();
         if (size > 50)
-        { // ограничиваем размре, чтобы небыло переполнения памяти
+        { // ограничиваем размeр, чтобы не было переполнения памяти
             _listValue.removeFirst();
         }
         _listValue.add(value);

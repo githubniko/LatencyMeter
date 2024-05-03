@@ -13,7 +13,7 @@ class LatencyMeter
     bool _flagStatus = false;                                   // Управляет запуском/остановкой процесса измерения
     List<uint16_t> _listValue;                                  // массив измерений
     byte _pinOut = PIN_OUT,                                     // красный
-        _pinOutt = PIN_OUT2;                                    // синий
+        _pinOut2 = PIN_OUT2;                                    // синий
     bool _sw = 1;                                               // флаг переключения светодиода
     uint32_t _interval = INTERVAL;                              // интервал переключения светодиода
     float _spread = 0;                                          // разброс измерений
@@ -34,7 +34,7 @@ public:
     {
         analogReference(EXTERNAL); // внешнее опорное напряжение 3.3В
         pinMode(_pinOut, OUTPUT);
-        pinMode(_pinOutt, OUTPUT);
+        pinMode(_pinOut2, OUTPUT);
     }
 
     void Start()
@@ -64,8 +64,7 @@ public:
 
         if (low > high)
         { // меняем местами цвета
-            _pinOutt = PIN_OUT2;
-            _pinOut = PIN_OUT;
+            _sw = !_sw;
         }
 
         // Вычисляем разброс измерений
@@ -213,7 +212,7 @@ private:
     /// @param in
     void ledSwitch(bool in)
     {
-        digitalWrite(_pinOutt, !in);
+        digitalWrite(_pinOut2, !in);
         digitalWrite(_pinOut, in);
     }
 

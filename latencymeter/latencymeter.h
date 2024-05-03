@@ -1,6 +1,6 @@
 #define PIN_IN 7
 #define PIN_OUT 3
-#define PIN_OUTT 2
+#define PIN_OUT2 2
 
 #include "include/AbstractEventHandler.h"
 
@@ -10,7 +10,7 @@ class LatencyMeter
     bool _flagMeasuring = false; // когда true, то идет процесс измерения
     bool _flagStatus = false;    // Управляет запуском/остановкой процесса измерения
     List<uint16_t> _listValue;   // массив измерений
-    byte _pinOut = PIN_OUT, _pinOutt = PIN_OUTT;
+    byte _pinOut = PIN_OUT, _pinOut2 = PIN_OUT2;
 
 public:
     float startVoltage = 0;
@@ -27,7 +27,7 @@ public:
     {
         analogReference(EXTERNAL); // внешнее опорное напряжение 3.3В
         pinMode(PIN_OUT, OUTPUT);
-        pinMode(PIN_OUTT, OUTPUT);
+        pinMode(PIN_OUT2, OUTPUT);
     }
 
     void Start()
@@ -41,6 +41,26 @@ public:
         count = 0;
         _flagMeasuring = false;
         _listValue.clear();
+
+        float high = 0, low = 0;
+
+        ledSwitch(0);
+        delay(2000);
+
+        ledSwitch(1);
+        delay(500);
+        high = getVoltage();
+
+        ledSwitch(0);
+        delay(500);
+        low = getVoltage();
+
+        if (low > high)
+        { // меняем местами цвета
+            _pinOut2 = PIN_OUT;
+            _pinOut = PIN_OUT2;
+        }
+
 
         onUpdate();
         minTime = 32767;
@@ -184,7 +204,7 @@ private:
     /// @param in
     void ledSwitch(bool in)
     {
-        digitalWrite(_pinOutt, !in);
+        digitalWrite(_pinOut2, !in);
         digitalWrite(_pinOut, in);
     }
 };

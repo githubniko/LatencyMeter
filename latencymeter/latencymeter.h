@@ -1,5 +1,6 @@
 #define PIN_IN 7
 #define PIN_OUT 3
+#define PIN_OUTT 2
 
 #include "include/AbstractEventHandler.h"
 
@@ -9,6 +10,7 @@ class LatencyMeter
     bool _flagMeasuring = false; // когда true, то идет процесс измерения
     bool _flagStatus = false;    // Управляет запуском/остановкой процесса измерения
     List<uint16_t> _listValue;   // массив измерений
+    byte _pinOut = PIN_OUT, _pinOutt = PIN_OUTT;
 
 public:
     float startVoltage = 0;
@@ -25,6 +27,7 @@ public:
     {
         analogReference(EXTERNAL); // внешнее опорное напряжение 3.3В
         pinMode(PIN_OUT, OUTPUT);
+        pinMode(PIN_OUTT, OUTPUT);
     }
 
     void Start()
@@ -41,13 +44,13 @@ public:
 
         onUpdate();
         minTime = 32767;
-        digitalWrite(PIN_OUT, LOW);
+        ledSwitch(0);
         delay(1000);
         startVoltage = getVoltage() + 0.05f; // / 2;
         // delay(2000);
         _flagStatus = true;
 
-        digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
+        ledSwitch(0); // Выкл. светодиод
     }
     void Stop() { _flagStatus = false; }
     void Restart()
@@ -70,7 +73,7 @@ public:
 
             _flagMeasuring = true;
             _timer = micros();
-            digitalWrite(PIN_OUT, HIGH); // Зажигаем светодиод
+            ledSwitch(1); // Зажигаем светодиод
         }
         // Ждем, сигнал от фотодатчика
         else
@@ -92,7 +95,7 @@ public:
 
                 onUpdate();
 
-                digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
+                ledSwitch(0); // Выкл. светодиод
                 _flagMeasuring = false;
             }
         }
@@ -176,5 +179,12 @@ private:
             }
         }
         return median1;
+    }
+    /// @brief Переключает светодиод
+    /// @param in
+    void ledSwitch(bool in)
+    {
+        digitalWrite(_pinOutt, !in);
+        digitalWrite(_pinOut, in);
     }
 };

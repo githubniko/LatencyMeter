@@ -11,6 +11,7 @@ class LatencyMeter
     bool _flagStatus = false;    // Управляет запуском/остановкой процесса измерения
     List<uint16_t> _listValue;   // массив измерений
     byte _pinOut = PIN_OUT, _pinOut2 = PIN_OUT2;
+    float _spread = 0; // разброс значений при измерении
 
 public:
     float startVoltage = 0;
@@ -61,6 +62,18 @@ public:
             _pinOut = PIN_OUT2;
         }
 
+        // Вычисляем разброс измерений
+        low = 32767, high = 0;
+        for (int i = 0; i < 500; i++)
+        {
+            float voltage = getVoltage();
+            if (voltage < low)
+                low = voltage;
+            if (voltage > high)
+                high = voltage;
+            delay(1);
+        }
+        _spread = high - low;
 
         onUpdate();
         minTime = 32767;
@@ -99,7 +112,7 @@ public:
         else
         {
             float voltage = getVoltage();
-            if (voltage > startVoltage + 0.5f)
+            if (voltage > startVoltage + _spread + 0.2f)
             { // Если сигнал поступил, то
                 count++;
                 valueTime = (micros() - _timer) / 1000; // Считаем задержку

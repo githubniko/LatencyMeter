@@ -36,7 +36,7 @@ public:
         _flagEvent = false; 
         return;
       }
-      if (time >= 80 && !_flagEvent) // Одинарно нажатие
+      if (time >= 100 && !_flagEvent) // Одинарно нажатие
       {
         onKeyUp();
         onClick();

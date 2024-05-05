@@ -12,6 +12,8 @@ class LatencyMeter
     List<uint16_t> _listValue;   // массив измерений
     byte _pinOut = PIN_OUT, _pinOut2 = PIN_OUT2;
     float _spread = 0; // разброс значений при измерении
+    float _hist = 0; // промежуток на который должно изм. напряжение на фотодатчике, чтобы остановить измерение
+    bool _sw = 0; // низкий потенциал на светодиоде
 
 public:
     float startVoltage = 0;
@@ -43,24 +45,26 @@ public:
         _flagMeasuring = false;
         _listValue.clear();
 
-        float high = 0, low = 0;
+        float high = 32767, low = 0;
 
-        ledSwitch(0);
+        ledSwitch(_sw);
         delay(2000);
 
-        ledSwitch(1);
+        // Проверяем какой из цветов дает меньший сигнал и инвертируем при необходимости
+        ledSwitch(!_sw);
         delay(500);
         high = getVoltage();
 
-        ledSwitch(0);
+        ledSwitch(_sw);
         delay(500);
         low = getVoltage();
 
         if (low > high)
         { // меняем местами цвета
-            _pinOut2 = PIN_OUT;
-            _pinOut = PIN_OUT2;
+            _sw =  !_sw;
         }
+
+        _hist = abs(high-low) / 4;
 
         // Вычисляем разброс измерений
         low = 32767, high = 0;
@@ -73,17 +77,18 @@ public:
                 high = voltage;
             delay(1);
         }
-        _spread = high - low;
+        _spread = (high - low ) /2;
 
         onUpdate();
         minTime = 32767;
-        ledSwitch(0);
+        ledSwitch(_sw);
         delay(1000);
-        startVoltage = getVoltage() + 0.05f; // / 2;
-        // delay(2000);
+        startVoltage = getVoltage() + _spread; // / 2;
+        
+         
         _flagStatus = true;
 
-        ledSwitch(0); // Выкл. светодиод
+        ledSwitch(_sw); // Выкл. светодиод
     }
     void Stop() { _flagStatus = false; }
     void Restart()
@@ -106,13 +111,13 @@ public:
 
             _flagMeasuring = true;
             _timer = micros();
-            ledSwitch(1); // Зажигаем светодиод
+            ledSwitch(!_sw); // Зажигаем светодиод
         }
         // Ждем, сигнал от фотодатчика
         else
         {
             float voltage = getVoltage();
-            if (voltage > startVoltage + _spread + 0.2f)
+            if (voltage > startVoltage + _hist)
             { // Если сигнал поступил, то
                 count++;
                 valueTime = (micros() - _timer) / 1000; // Считаем задержку
@@ -128,7 +133,7 @@ public:
 
                 onUpdate();
 
-                ledSwitch(0); // Выкл. светодиод
+                ledSwitch(_sw); // Выкл. светодиод
                 _flagMeasuring = false;
             }
         }

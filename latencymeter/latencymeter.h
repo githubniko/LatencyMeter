@@ -1,26 +1,26 @@
 #define PIN_IN 7     // фотодатчик
 #define PIN_OUT 2    // светодиод 1
 #define PIN_OUT2 3   // светодиод 2
-#define INTERVAL 500 // интервал переключения светодиода, мс
-#define VOLTAGE_REF 3.33f
+#define INTERVAL 500 // интервал переключения светодиода, мкс
+#define VREF 3.33f
 
 #include "include/AbstractEventHandler.h"
 
 class LatencyMeter
 {
-    uint32_t _timer = 0, _timer2 = 0, _timer3 = 0, _timer4 = 0; // Переменная таймера
-    bool _flagMeasuring = false;                                // когда true, то идет процесс измерения
-    bool _flagStatus = false;                                   // Управляет запуском/остановкой процесса измерения
-    List<uint16_t> _listValue;                                  // массив измерений
-    byte _pinOut = PIN_OUT,                                     // красный
-        _pinOut2 = PIN_OUT2;                                    // синий
-    bool _sw = 1;                                               // флаг переключения светодиода
-    uint32_t _interval = INTERVAL;                              // интервал переключения светодиода
-    float _spread = 0;                                          // разброс измерений
+    uint32_t _timer = 0, _timer2 = 0, _timer3 = 0; // Переменная таймера
+    bool _flagMeasuring = false;                   // когда true, то идет процесс измерения
+    bool _flagStatus = false;                      // Управляет запуском/остановкой процесса измерения
+    List<uint16_t> _listValue;                     // массив измерений
+    byte _pinOut = PIN_OUT,                        // красный
+        _pinOut2 = PIN_OUT2;                       // синий
+    bool _sw = 0;                                  // флаг переключения светодиода
+    uint32_t _interval = INTERVAL;                 // интервал переключения светодиода
+    float _spread = 0;                             // разброс измерений
 
 public:
     float lowVoltage = 0;
-    float highVoltage = VOLTAGE_REF;
+    float highVoltage = VREF;
     uint16_t medianTime = 0; // Медиана значений
     uint16_t minTime = 0;
     uint16_t maxTime = 0;
@@ -40,8 +40,8 @@ public:
     void Start()
     {
         Serial.println("Start");
-        lowVoltage = 0;
-        highVoltage = VOLTAGE_REF;
+        lowVoltage = VREF;
+        highVoltage = 0;
         medianTime = 0;
         minTime = 0;
         maxTime = 0;
@@ -50,25 +50,27 @@ public:
         _listValue.clear();
 
         // Проверка, какой из цветов дает высокий, а какой - низкий уровни
-        float low = 32767, high = 0;
-        ledSwitch(_sw);
+        ledSwitch(!_sw);
         delay(2000);
+
+        ledSwitch(_sw);
+        delay(500);
+        highVoltage = getVoltage();
 
         ledSwitch(!_sw);
         delay(500);
-        high = getVoltage();
+        lowVoltage = getVoltage();
 
-        ledSwitch(_sw);
-        delay(500);
-        low = getVoltage();
-
-        if (low > high)
+        if (lowVoltage > highVoltage)
         { // меняем местами цвета
             _sw = !_sw;
+            float tmp = highVoltage;
+            highVoltage = lowVoltage;
+            lowVoltage = tmp;
         }
 
         // Вычисляем разброс измерений
-        low = 32767, high = 0;
+        float low = VREF, high = 0;
         for (int i = 0; i < 500; i++)
         {
             float voltage = getVoltage();
@@ -76,12 +78,9 @@ public:
                 low = voltage;
             if (voltage > high)
                 high = voltage;
-            // Serial.print(voltage);
-            // Serial.print(",");
-            // Serial.println("");
             delay(1);
         }
-        _spread = high - low;
+        _spread = (high - low) / 2;
 
         onUpdate();
         minTime = 32767;
@@ -103,66 +102,58 @@ public:
 
         // Блок переключает светодиод с периодичностью _interval
         // Тут нужно подобрать интервал переключения так, чтобы автоэкспозиция не менялась
-        uint32_t ms = micros() - _timer2;
-        if (ms >= _interval * 1000 * 2)
+        uint32_t ms = (micros() - _timer2) / 1000;
+        if (ms >= _interval * 2)
         {
             _sw = !_sw;
             ledSwitch(_sw);
-            _timer2 = micros();
+
+            // Авто-обновляем экстремумов
             if (_sw)
+                highVoltage = getVoltage();
+            else
+                lowVoltage = getVoltage();
+
+            _timer2 = micros();
+            if (!_sw)
                 _timer = micros(); // сохраняем время начала измерения
         }
 
         // Блок производящий измерения на фотодатчике
-        if (_sw) // Ждем, начало измерения
+        if (!_sw && highVoltage != 0 && lowVoltage != VREF) // Ждем, начало измерения
         {
             // Интервал изменений на фотодатчике
             ms = (micros() - _timer3) / 1000;
             if (ms > _interval * 2)
             {
                 _flagMeasuring = true;
-                lowVoltage = 0;
-                highVoltage = 3.3f;
                 _timer3 = micros(); // Обнуляем таймер каждый _interval миллисекунд
             }
             else
             {
                 float voltage = getVoltage(); // сохраняем зн. напряжения каждую миллисекунду
 
-                // Авто-обновляем экстремумов
-                ms = (micros() - _timer4) / 1000;
-                if (ms > _interval * 2)
-                {
-                    if (lowVoltage > voltage || lowVoltage == 0)
-                        lowVoltage = voltage;
-
-                    if (highVoltage < voltage || highVoltage == VOLTAGE_REF)
-                        highVoltage = voltage;
-                    _timer4 = micros();
-                }
-
-                float delta = (highVoltage - lowVoltage);
-
                 // Защита от низкой разницы между верх/нижн измерениями
-                if (delta < 0.5f)
+                if (highVoltage - lowVoltage < 0.1f)
                 {
                     valueTime = 0;
                     return;
                 }
+                
 
-                // if (ms % 1000 == 0)
-                // {
-                //     Serial.print("Low: ");
-                //     Serial.print(lowVoltage);
-                //     Serial.print(" High: ");
-                //     Serial.print(highVoltage);
-                //     Serial.print(" _spread: ");
-                //     Serial.print(_spread);
-                //     Serial.print(" delta: ");
-                //     Serial.println(delta);
-                // }
+                if (ms % 1000 == 0)
+                {
+                    Serial.print("Low: ");
+                    Serial.print(lowVoltage);
+                    Serial.print(" High: ");
+                    Serial.print(highVoltage);
+                    Serial.print(" _spread: ");
+                    Serial.print(_spread);
+                }
 
-                if (voltage > lowVoltage + _spread + 0.2f && _flagMeasuring)
+                
+
+                if (voltage > lowVoltage + _spread && _flagMeasuring)
                 {
                     _flagMeasuring = false;
                     valueTime = (micros() - _timer) / 1000;
@@ -170,34 +161,17 @@ public:
                     if (valueTime < minTime)
                         minTime = valueTime;
 
-                    if (valueTime > maxTime) {
+                    if (valueTime > maxTime)
+                    {
                         maxTime = valueTime;
-                        _interval = maxTime*2; // сокращаем интервал проверки
-                        }
-                    //_timer3 = _timer3 + (valueTime - maxTime)*1000; // синхронизации кадров и вспышки
+                        _interval = maxTime > INTERVAL ? INTERVAL : maxTime * 2; // сокращаем интервал проверки
+                    }
+                    //_timer3 = _timer3 + (valueTime - maxTime)*1000; // попытка синхронизации кадров и вспышки
                     medianTime = round(median());
                     onUpdate();
                     Serial.println(valueTime);
                 }
             }
-
-            /*if (voltage > highVoltage)
-            { // Если сигнал поступил, то
-                count++;
-                valueTime = (micros() - _timer) / 1000; // Считаем задержку
-                AddValue(valueTime);
-
-                if (valueTime < minTime)
-                    minTime = valueTime;
-
-                if (valueTime > maxTime)
-                    maxTime = valueTime;
-
-                medianTime = round(median());
-
-                onUpdate();
-                _flagMeasuring = false;
-            }*/
         }
     }
 
@@ -206,7 +180,7 @@ private:
     /// @return Возвращяет напряжение
     float getVoltage()
     {
-        return (float)(analogRead(PIN_IN) * 3.3) / 1024;
+        return (float)(analogRead(PIN_IN) * VREF) / 1024;
     }
     /// @brief Переключает светодиод
     /// @param in

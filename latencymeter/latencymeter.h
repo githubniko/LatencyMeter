@@ -164,7 +164,7 @@ public:
                     if (valueTime > maxTime)
                     {
                         maxTime = valueTime;
-                        _interval = maxTime > INTERVAL ? INTERVAL : maxTime * 2; // сокращаем интервал проверки
+                        _interval = maxTime > INTERVAL ? INTERVAL : maxTime + 40; // сокращаем интервал проверки
                     }
                     //_timer3 = _timer3 + (valueTime - maxTime)*1000; // попытка синхронизации кадров и вспышки
                     medianTime = round(median());

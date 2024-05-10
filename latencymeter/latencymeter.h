@@ -1,5 +1,6 @@
 #define PIN_IN 7
 #define PIN_OUT 3
+#define PIN_OUT2 2
 
 #include "include/AbstractEventHandler.h"
 
@@ -9,6 +10,10 @@ class LatencyMeter
     bool _flagMeasuring = false; // когда true, то идет процесс измерения
     bool _flagStatus = false;    // Управляет запуском/остановкой процесса измерения
     List<uint16_t> _listValue;   // массив измерений
+    byte _pinOut = PIN_OUT, _pinOut2 = PIN_OUT2;
+    float _spread = 0; // разброс значений при измерении
+    float _hist = 0; // промежуток на который должно изм. напряжение на фотодатчике, чтобы остановить измерение
+    bool _sw = 0; // низкий потенциал на светодиоде
 
 public:
     float startVoltage = 0;
@@ -25,6 +30,7 @@ public:
     {
         analogReference(EXTERNAL); // внешнее опорное напряжение 3.3В
         pinMode(PIN_OUT, OUTPUT);
+        pinMode(PIN_OUT2, OUTPUT);
     }
 
     void Start()
@@ -39,15 +45,50 @@ public:
         _flagMeasuring = false;
         _listValue.clear();
 
+        float high = 32767, low = 0;
+
+        ledSwitch(_sw);
+        delay(2000);
+
+        // Проверяем какой из цветов дает меньший сигнал и инвертируем при необходимости
+        ledSwitch(!_sw);
+        delay(500);
+        high = getVoltage();
+
+        ledSwitch(_sw);
+        delay(500);
+        low = getVoltage();
+
+        if (low > high)
+        { // меняем местами цвета
+            _sw =  !_sw;
+        }
+
+        _hist = abs(high-low) / 4;
+
+        // Вычисляем разброс измерений
+        low = 32767, high = 0;
+        for (int i = 0; i < 500; i++)
+        {
+            float voltage = getVoltage();
+            if (voltage < low)
+                low = voltage;
+            if (voltage > high)
+                high = voltage;
+            delay(1);
+        }
+        _spread = (high - low ) /2;
+
         onUpdate();
         minTime = 32767;
-        digitalWrite(PIN_OUT, LOW);
+        ledSwitch(_sw);
         delay(1000);
-        startVoltage = getVoltage() + 0.05f; // / 2;
-        // delay(2000);
+        startVoltage = getVoltage() + _spread; // / 2;
+        
+         
         _flagStatus = true;
 
-        digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
+        ledSwitch(_sw); // Выкл. светодиод
     }
     void Stop() { _flagStatus = false; }
     void Restart()
@@ -70,13 +111,13 @@ public:
 
             _flagMeasuring = true;
             _timer = micros();
-            digitalWrite(PIN_OUT, HIGH); // Зажигаем светодиод
+            ledSwitch(!_sw); // Зажигаем светодиод
         }
         // Ждем, сигнал от фотодатчика
         else
         {
             float voltage = getVoltage();
-            if (voltage > startVoltage + 0.5f)
+            if (voltage > startVoltage + _hist)
             { // Если сигнал поступил, то
                 count++;
                 valueTime = (micros() - _timer) / 1000; // Считаем задержку
@@ -92,7 +133,7 @@ public:
 
                 onUpdate();
 
-                digitalWrite(PIN_OUT, LOW); // Выкл. светодиод
+                ledSwitch(_sw); // Выкл. светодиод
                 _flagMeasuring = false;
             }
         }
@@ -176,5 +217,12 @@ private:
             }
         }
         return median1;
+    }
+    /// @brief Переключает светодиод
+    /// @param in
+    void ledSwitch(bool in)
+    {
+        digitalWrite(_pinOut2, !in);
+        digitalWrite(_pinOut, in);
     }
 };

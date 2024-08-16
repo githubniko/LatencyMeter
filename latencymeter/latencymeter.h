@@ -80,7 +80,7 @@ public:
                 high = voltage;
             delay(1);
         }
-        _spread = (high - low) / 2;
+        _spread = (high - low)*2.5f;
 
         onUpdate();
         minTime = 32767;

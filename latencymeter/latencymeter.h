@@ -168,6 +168,7 @@ public:
                     }
                     //_timer3 = _timer3 + (valueTime - maxTime)*1000; // попытка синхронизации кадров и вспышки
                     medianTime = round(median());
+                    count++;
                     onUpdate();
                     Serial.println(valueTime);
                 }

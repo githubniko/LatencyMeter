@@ -141,7 +141,7 @@ public:
                 }
                 
 
-                if (ms % 1000 == 0)
+                /*if (ms % 1000 == 0)
                 {
                     Serial.print("Low: ");
                     Serial.print(lowVoltage);
@@ -149,7 +149,7 @@ public:
                     Serial.print(highVoltage);
                     Serial.print(" _spread: ");
                     Serial.print(_spread);
-                }
+                }*/
 
                 
 
